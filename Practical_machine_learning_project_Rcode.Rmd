@@ -1,0 +1,148 @@
+
+# A predictive model that determines the manner an exercise is done is built using Random forest
+
+set.seed(1235)   # set the seed for reproducibility of the results
+
+
+# load necessary packages
+
+library(caret)
+
+library(ggplot2)
+
+# download data that is to be used for training and testing
+
+data1<-read.csv("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",na.strings=c("NA",""))
+
+
+
+dim(data1)
+
+names(data1)
+
+# divide the data into training data and testing data
+# According to the rules of thumb for prediction study design
+# we can partion the data into 60% training and 40% testing
+# Then we put aside the testing data and finish the model selection process using the trainiing data
+
+for_training<-createDataPartition(y=data1$classe,p=0.6,list=FALSE)
+
+training <-data1[for_training,]
+
+testing <-data1[-for_training,]
+
+
+# Explore the training data
+
+ dim(training)
+ names(training)
+
+# Remove the first seven column of the training data as they are not important for the machine learning algorithm development
+
+training <-training[,8:160]
+
+# remove columns (covariates) with NAs
+
+non_missing_training<-apply(!is.na(training),2,sum)==dim(training)[1]
+
+
+training<-training[,non_missing_training]
+
+dim(training)
+
+
+# 53 columns are left: 52 covariates and the dependent variable (predictand), which is the rightmost column
+
+# Fit a random forest model; with 10-fold cross-validation
+
+rf_fit<-train(classe~.,data=training,method="rf", allowParallel=TRUE,prox=TRUE, trControl=trainControl(method="cv",number=10))
+
+
+save(rf_fit, file="randomForest_model_cv10_p60.RData")
+
+
+# plot variable importance
+
+importance <- varImp(rf_fit)
+
+plot(importance, main = "Variable Importance of features")
+
+# we can also see a list of the top 20, by simply writing
+
+importance
+
+# see the summary of the model
+
+rf_fit
+
+# confusion matrix
+
+rf_fit$finalModel$confusion
+
+
+# Now, let us check the out-of sample error by checking how the final model performs on the testing data (a data set that was never touched in the training     process)
+
+# Similar to the training data, remove the first 7 column of the testing data, since they are not used as covariates in the testing
+
+
+testing <-testing[,8:160]
+
+# Similar to what was done in the training data, remove covariates with NAs
+
+
+non_missing_testing<-apply(!is.na(testing),2,sum)==dim(testing)[1]
+
+testing<-testing[,non_missing_testing]
+
+dim(testing)   
+
+
+prediction<-predict(rf_fit,testing)
+
+
+save(prediction, file="randomForest_model_cv10_p60_testing.RData")
+
+
+accuracy = sum(prediction==testing$classe)/length(testing$classe)
+
+
+accuracy
+
+  0.9945195
+
+
+# we see that the accuracy of the testing dataset is very good, with error of only 0.55%
+# The model also predicts the limited test dataset provided for the online submission 100% correct.
+
+
+
+# Now, let us download the data provided for prediction submission
+
+# download test data to predict using the model built above Similar to the training dataset, 
+# remove the first seven columns which are not covariates for the model and also remove covariates with missing values
+
+test_given<-read.csv("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",na.strings=c("NA",""))
+
+test_given<-test_given[,8:160]
+
+non_missing_test<-apply(!is.na(test),2,sum)>=dim(test)[1]
+
+test_given<-test_given[,non_missing_test]
+
+# predict for the test data and save the results
+
+prediction = predict(rf_fit,test_given)
+
+# As the feedback from the online submisssion shows, the model predicts the test data 100% acccurate
+
+# saving prediction results
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(prediction)
