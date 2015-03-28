@@ -1,5 +1,5 @@
 # pml_project
-This course, which is the eigth course of the data science specialization from Johns Hopkins University on Coursera, focuses on developing the tools and techniques for understanding, building, and testing prediction functions
+This course, which is the eigth course of the data science specialization from Johns Hopkins University on Coursera, focuses on developing the tools and techniques for understanding, building, and testing prediction functions.
 
 Course Content
 
